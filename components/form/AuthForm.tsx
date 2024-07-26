@@ -9,7 +9,7 @@ import {
   updateProfile,
 } from "firebase/auth";
 import { Formik } from "formik";
-import { useState } from "react";
+import { useContext, useState } from "react";
 import { Alert, Modal, StyleSheet, Text, View } from "react-native";
 import { colors } from "../../constants/colors";
 import globalStyles from "../../constants/globalStyles";
@@ -22,6 +22,7 @@ import { FIREBASE_AUTH } from "../../firebaseConfig";
 import CustomButton from "../ui/CustomButton";
 import FormTextInput from "./FormTextInput";
 import CustomAlert from "../ui/CustomAlert";
+import { GoalContext } from "../../store/goal-context";
 
 type AuthFormProps = {
   title: string;
@@ -47,6 +48,7 @@ const AuthForm: React.FC<AuthFormProps> = ({
   const [showCustomAlert, setShowCustomAlert] = useState(false);
   const [descriptionMessages, setDescriptionMessages] = useState<string[]>([]);
   const [passwordResetTitle, setPasswordResetTitle] = useState("");
+  const { setUserEmail, setIsEmailVerified } = useContext(GoalContext);
   const { navigate } = useNavigation();
 
   const handleAuth = async (values: {
@@ -151,7 +153,7 @@ const AuthForm: React.FC<AuthFormProps> = ({
             <View
               style={{
                 width: "100%",
-                marginVertical: 10,
+                marginTop: 10,
               }}
             >
               <CustomButton
@@ -162,6 +164,17 @@ const AuthForm: React.FC<AuthFormProps> = ({
                 }}
               />
             </View>
+            {isSignUp && (
+              <CustomButton
+                buttonText="Explore the App as Guest"
+                onPress={() => {
+                  setUserEmail("financekaijuce@test.com");
+                  setIsEmailVerified(true);
+                }}
+                buttonColor={colors.accent800}
+                style={{ marginTop: 20 }}
+              />
+            )}
             <View
               style={{
                 alignItems: "center",

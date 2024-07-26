@@ -5,30 +5,55 @@ import { colors } from "../constants/colors";
 import { screenHeight, screenWidth } from "../constants/types";
 import { ExpensesContext } from "../store/expenses-context";
 
-const CustomBarChart = ({ selectedMonth, selectedYear }) => {
-  const [data, setData] = useState([]);
+interface CustomBarChartProps {
+  selectedMonth: number;
+  selectedYear: number;
+}
+
+interface Expense {
+  date: string;
+  category: string;
+  amount: number;
+}
+
+interface Period {
+  month: number;
+  year: number;
+  label: string;
+}
+
+interface DataItem {
+  label: string;
+  value: number;
+}
+
+const CustomBarChart: React.FC<CustomBarChartProps> = ({
+  selectedMonth,
+  selectedYear,
+}) => {
+  const [data, setData] = useState<DataItem[]>([]);
 
   const { expenses } = useContext(ExpensesContext);
 
-  const getMonthName = (date) => {
+  const getMonthName = (date: Date): string => {
     return date.toLocaleString("en-US", { month: "long" });
   };
 
-  const calculateExpensesForMonth = (month, year) => {
+  const calculateExpensesForMonth = (month: number, year: number): number => {
     const filteredExpenses = expenses.filter(
-      (expense) =>
+      (expense: Expense) =>
         new Date(expense.date).getMonth() === month &&
         new Date(expense.date).getFullYear() === year &&
         expense.category !== "INCOME" &&
         expense.category !== "PROFIT"
     );
+
     return filteredExpenses.reduce((total, { amount }) => total + amount, 0);
   };
 
   useEffect(() => {
-    const periods = [0, 1, 2, 3]
+    const periods: Period[] = [0, 1, 2, 3]
       .map((offset) => {
-        // Adjust the month calculation here
         const date = new Date(selectedYear, selectedMonth - offset, 1);
         return {
           month: date.getMonth(),
@@ -36,12 +61,12 @@ const CustomBarChart = ({ selectedMonth, selectedYear }) => {
           label: getMonthName(date),
         };
       })
-      .reverse(); // Reverse the array to get the months in the correct order
+      .reverse();
 
-    const newData = periods.map(({ month, year, label }) => ({
-      label,
-      value: calculateExpensesForMonth(month, year),
-    }));
+    const newData: DataItem[] = periods.map(({ month, year, label }) => {
+      const value = calculateExpensesForMonth(month, year);
+      return { label, value };
+    });
 
     const isDataValid = newData.some((item) => item.value > 0);
     if (isDataValid) {
@@ -52,7 +77,7 @@ const CustomBarChart = ({ selectedMonth, selectedYear }) => {
   }, [selectedMonth, selectedYear, expenses]);
 
   const maxValue = Math.max(...data.map((item) => item.value));
-  const calculateRoundedMaxValue = (maxValue) => {
+  const calculateRoundedMaxValue = (maxValue: number): number => {
     if (maxValue < 200) {
       return Math.ceil(maxValue * 1.1);
     } else {
@@ -94,11 +119,9 @@ const CustomBarChart = ({ selectedMonth, selectedYear }) => {
           dashWidth={10}
           verticalLinesColor={colors.primary500}
           color={colors.primary500}
-          frontColor={colors.primary500}
-          barMarginBottom={0.5}
+          frontColor={colors.accent500}
+          barMarginBottom={1}
           barBorderColor={colors.primary800}
-          showGradient={true}
-          gradientColor={colors.accent200}
           onPress={(value: any) => {
             Alert.alert(
               `Total Spent in ${value.label}`,

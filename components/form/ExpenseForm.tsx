@@ -146,6 +146,8 @@ export const ExpenseForm = ({
             description: expenseDescription,
             date: selectedDate.toISOString(),
             userEmail: user?.email,
+            month: selectedDate.getMonth() + 1,
+            year: selectedDate.getFullYear(),
           };
 
           if (isUpdating) {

@@ -76,6 +76,8 @@ const Home = () => {
       />
       <View>
         <ProgressTrack
+          condition={depositProgress > 0.8}
+          iconName={depositProgress >= 1 ? "star" : "thumbs-up"}
           goalType="deposit"
           goal={depositGoal}
           description="Deposit"
@@ -92,6 +94,14 @@ const Home = () => {
           goalProgress={`$${Number(depositGoal.toFixed(2))}`}
         />
         <ProgressTrack
+          condition={spendingRemainingProgress > 0.3}
+          iconName={
+            spendingRemainingProgress >= 0.6
+              ? "star"
+              : spendingRemainingProgress >= 0.4
+              ? "thumbs-up"
+              : "thumbs-up"
+          }
           goalType="budget"
           goal={budgetGoal}
           description="Budget"

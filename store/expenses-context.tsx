@@ -12,7 +12,8 @@ type Action =
   | { type: "DELETE_EXPENSE"; payload: number | string }
   | { type: "UPDATE_EXPENSE"; payload: Expense }
   | { type: "SET_EXPENSE"; payload: Expense[] }
-  | { type: "SET_TEST_DATA_USAGE"; payload: boolean };
+  | { type: "SET_TEST_DATA_USAGE"; payload: boolean }
+  | { type: "PUSH_EXPENSES"; payload: Expense[] };
 
 export interface ExpensesContextProps {
   expenses: Expense[];
@@ -22,6 +23,7 @@ export interface ExpensesContextProps {
   updateExpense: (expense: Expense) => void;
   setExpense: (expense: Expense[]) => void;
   setTestDataUsage: (isUsingTestData: boolean) => void;
+  pushExpenses: (expenses: Expense[]) => void;
 }
 
 export const ExpensesContext = createContext<ExpensesContextProps>({
@@ -32,6 +34,7 @@ export const ExpensesContext = createContext<ExpensesContextProps>({
   updateExpense: () => {},
   setExpense: () => {},
   setTestDataUsage: () => {},
+  pushExpenses: () => {},
 });
 
 function expensesReducer(state: State, action: Action): State {
@@ -51,9 +54,11 @@ function expensesReducer(state: State, action: Action): State {
         ),
       };
     case "SET_EXPENSE":
-      return { expenses: action.payload }; // update this line
+      return { expenses: action.payload };
     case "SET_TEST_DATA_USAGE":
       return { ...state, isUsingTestData: action.payload };
+    case "PUSH_EXPENSES":
+      return { expenses: [...action.payload, ...state.expenses] };
     default:
       return state;
   }
@@ -93,6 +98,10 @@ export default function ExpensesContextProvider({
     dispatch({ type: "SET_TEST_DATA_USAGE", payload: isUsingTestData });
   }
 
+  function pushExpenses(expenses: Expense[]) {
+    dispatch({ type: "PUSH_EXPENSES", payload: expenses });
+  }
+
   const value = {
     expenses: expensesState.expenses,
     isUsingTestData: expensesState.isUsingTestData ?? false,
@@ -101,6 +110,7 @@ export default function ExpensesContextProvider({
     updateExpense,
     setExpense,
     setTestDataUsage,
+    pushExpenses,
   };
 
   return (

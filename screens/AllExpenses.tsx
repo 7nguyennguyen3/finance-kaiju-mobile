@@ -1,6 +1,14 @@
+import React from "react";
 import { Ionicons } from "@expo/vector-icons";
-import { useContext, useMemo, useState } from "react";
-import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
+import { useContext, useEffect, useMemo, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import MonthSwitch from "../components/MonthSwitch";
 import PaginationComponent from "../components/ui/Pagination";
 import TransactionRecord from "../components/ui/TransactionRecord";
@@ -8,8 +16,12 @@ import { colors } from "../constants/colors";
 import globalStyles from "../constants/globalStyles";
 import { categories } from "../constants/types";
 import { ExpensesContext } from "../store/expenses-context";
+import globalStore from "../store/store";
+import BouncingDots from "../components/ui/BouncingDots";
+import LoadingSkeleton from "../components/ui/LoadingSkeleton";
+import CustomAlert from "../components/ui/CustomAlert";
 
-const Test = () => {
+const AllExpenses = () => {
   const [selectedMonth, setSelectedMonth] = useState<number>(
     new Date().getMonth()
   );
@@ -21,15 +33,26 @@ const Test = () => {
       (category) => category !== "INCOME" && category !== "PROFIT"
     )
   );
+  const [multiSelect, setMultiSelect] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const { expenses } = useContext(ExpensesContext);
+  const { addMonthData, isGlobalLoading } = globalStore();
+  const [showCustomAlert, setShowCustomAlert] = useState(false);
+
+  useEffect(() => {
+    if (!multiSelect) {
+      setSelectedCategories(["FOOD"]);
+    }
+  }, [multiSelect]);
 
   const goToPreviousMonth = () => {
     setSelectedMonth((prevMonth) => {
       if (prevMonth === 0) {
         setSelectedYear((prevYear) => prevYear - 1);
+        addMonthData(`${12}/${selectedYear - 1}`);
         return 11; // December of the previous year
       } else {
+        addMonthData(`${prevMonth}/${selectedYear}`);
         return prevMonth - 1;
       }
     });
@@ -39,8 +62,10 @@ const Test = () => {
     setSelectedMonth((prevMonth) => {
       if (prevMonth === 11) {
         setSelectedYear((prevYear) => prevYear + 1);
+        addMonthData(`1/${selectedYear + 1}`);
         return 0;
       } else {
+        addMonthData(`${prevMonth + 2}/${selectedYear}`);
         return prevMonth + 1;
       }
     });
@@ -51,6 +76,10 @@ const Test = () => {
   const handleCategorySelect = (categoryKey: string) => {
     setSelectedCategories((prevCategories) => {
       const isIncomeCategory = incomeCategories.includes(categoryKey);
+
+      if (!multiSelect) {
+        return [categoryKey];
+      }
 
       // Prevent deselection if it's the only category selected
       if (prevCategories.length === 1 && prevCategories.includes(categoryKey)) {
@@ -135,37 +164,93 @@ const Test = () => {
         goToPreviousMonth={goToPreviousMonth}
         goToNextMonth={goToNextMonth}
       />
+
+      {/* Quick Select Between All Expenses or All Deposit */}
       <View
         style={{
           flexDirection: "row",
           justifyContent: "center",
         }}
       >
+        {/* All Expenses */}
         <Pressable
           style={({ pressed }) => [
             styles.allPressable,
+            {
+              backgroundColor:
+                selectedCategories.length === 8
+                  ? colors.primary300
+                  : "transparent",
+            },
             pressed ? styles.pressed : {},
           ]}
-          onPress={() =>
+          onPress={() => {
+            setMultiSelect(true);
             setSelectedCategories(
               Object.keys(categories).filter(
                 (category) => category !== "INCOME" && category !== "PROFIT"
               )
-            )
-          }
+            );
+          }}
         >
           <Ionicons name="wallet-outline" size={30} color={colors.error500} />
         </Pressable>
+
+        {/* Multi Select */}
         <Pressable
           style={({ pressed }) => [
             styles.allPressable,
+            {
+              // backgroundColor: multiSelect ? colors.primary300 : "transparent",
+              width: "46%",
+              flexDirection: "row",
+              alignItems: "center",
+              paddingHorizontal: 5,
+            },
             pressed ? styles.pressed : {},
           ]}
-          onPress={() => setSelectedCategories(["INCOME", "PROFIT"])}
+          onPress={() => {
+            setMultiSelect(!multiSelect);
+          }}
         >
-          <Ionicons name="cash-outline" size={30} color={colors.primary500} />
+          <Text
+            style={{
+              fontWeight: "bold",
+              fontSize: 16,
+            }}
+          >
+            Single Category
+          </Text>
+          <Ionicons
+            name={multiSelect ? "close-circle" : "checkmark-circle"}
+            size={24}
+            color={multiSelect ? colors.error500 : colors.primary500}
+            style={{ marginLeft: 5 }}
+          />
+        </Pressable>
+
+        {/* All Deposit */}
+        <Pressable
+          style={({ pressed }) => [
+            styles.allPressable,
+            {
+              backgroundColor:
+                selectedCategories.includes("INCOME") &&
+                selectedCategories.includes("PROFIT")
+                  ? colors.primary300
+                  : "transparent",
+            },
+            pressed ? styles.pressed : {},
+          ]}
+          onPress={() => {
+            setMultiSelect(true), setSelectedCategories(["INCOME", "PROFIT"]);
+          }}
+        >
+          <Ionicons name="cash-outline" size={30} color={colors.primary800} />
         </Pressable>
       </View>
+
+      {/* Category Selection */}
       <View style={styles.container}>
         {Object.entries(categories).map(([key, { icon, color }]) => (
           <Pressable
@@ -184,32 +269,89 @@ const Test = () => {
           </Pressable>
         ))}
       </View>
-      <Text style={styles.totalAmountText}>
-        Total Amount:{" "}
-        <Text
-          style={{
-            color: selectedCategories.some((category) =>
-              incomeCategories.includes(category)
-            )
-              ? colors.primary800
-              : colors.error500,
-          }}
-        >
-          ${Number(totalAmount.toFixed(2))}
-        </Text>
-      </Text>
 
-      <PaginationComponent
-        page={currentPage}
-        maxPage={maxPage}
-        setPage={setCurrentPage}
-      />
-      <TransactionRecord displayExpenses={paginatedExpenses} />
+      {/* Displaying Total & Records with Pagination */}
+      {isGlobalLoading ? (
+        <>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+            }}
+          >
+            <Text style={[styles.totalAmountText, { marginRight: 5 }]}>
+              Total Amount:
+            </Text>
+            <BouncingDots />
+          </View>
+
+          <PaginationComponent
+            page={currentPage}
+            maxPage={maxPage}
+            setPage={setCurrentPage}
+          />
+          <LoadingSkeleton />
+        </>
+      ) : (
+        <>
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <Text style={styles.totalAmountText}>
+              Total Amount:{" "}
+              <Text
+                style={{
+                  color: selectedCategories.some((category) =>
+                    incomeCategories.includes(category)
+                  )
+                    ? colors.primary800
+                    : colors.error500,
+                }}
+              >
+                ${Number(totalAmount.toFixed(2))}
+              </Text>
+            </Text>
+            <Ionicons
+              name="help-circle-sharp"
+              size={26}
+              color={colors.blue900}
+              onPress={() => {
+                setShowCustomAlert(true);
+              }}
+            />
+            {showCustomAlert && (
+              <CustomAlert
+                title="Insight"
+                descriptions={[
+                  "Multiple categories are enabled by default.",
+                  "Reselect a category in multiple categories mode to deselect it.",
+                  "Enable single category mode to view one category at a time.",
+                  "Select the wallet icon to view all expenses.",
+                  "Select the cash icon to view all deposits.",
+                ]}
+                okText="OK"
+                onPressOk={() => setShowCustomAlert(false)}
+              />
+            )}
+          </View>
+
+          <PaginationComponent
+            page={currentPage}
+            maxPage={maxPage}
+            setPage={setCurrentPage}
+          />
+          <TransactionRecord displayExpenses={paginatedExpenses} />
+        </>
+      )}
     </View>
   );
 };
 
-export default Test;
+export default AllExpenses;
 
 const styles = StyleSheet.create({
   container: {
@@ -227,14 +369,12 @@ const styles = StyleSheet.create({
   },
   allPressable: {
     margin: 10,
-    marginHorizontal: 20,
-    padding: 5,
-    borderWidth: 2,
-    borderColor: colors.zinc500,
-    width: "30%",
+    padding: 3,
+    borderWidth: 1.8,
+    width: "17%",
     justifyContent: "center",
     alignItems: "center",
-    elevation: 3,
+    elevation: 2,
   },
   selected: {
     backgroundColor: colors.primary500,

@@ -68,11 +68,11 @@ const styles = StyleSheet.create({
     height: 80,
     padding: 10,
     borderWidth: 2,
-    borderColor: colors.primary300,
     borderRadius: 5,
     justifyContent: "center",
     alignItems: "center",
     marginHorizontal: 5,
+    elevation: 2,
   },
   infoBoxText: {
     fontSize: 16,

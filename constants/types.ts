@@ -5,6 +5,8 @@ export type Expense = {
   category: string;
   credentialsEmail?: string | null;
   date: string;
+  month?: number;
+  year?: number;
   description?: string;
   id: number | string;
   userEmail?: string | null;

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useContext, useState } from "react";
 import {
   StyleSheet,
   Text,
@@ -6,6 +6,7 @@ import {
   Modal,
   Pressable,
   TextInput,
+  Button,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { signOut /*, updateProfile*/ } from "firebase/auth";
@@ -14,14 +15,20 @@ import CustomButton from "../components/ui/CustomButton";
 import { colors } from "../constants/colors";
 import globalStyles from "../constants/globalStyles";
 import { FIREBASE_AUTH } from "../firebaseConfig";
+import { GoalContext } from "../store/goal-context";
+import { ExpensesContext } from "../store/expenses-context";
+import globalStore from "../store/store";
 // import Filter from "bad-words";
 
 const Account = () => {
   const user = FIREBASE_AUTH.currentUser;
   const [showSignOutAlert, setShowSignOutAlert] = useState(false);
+  const { setUserEmail, setIsEmailVerified } = useContext(GoalContext);
+  const { setExpense } = useContext(ExpensesContext);
+  const { setFetchedMonthData } = globalStore();
   // const [modalVisible, setModalVisible] = useState(false);
   // const [newDisplayName, setNewDisplayName] = useState(user?.displayName || "");
-  const [isLoading, setIsLoading] = useState(false);
+  // const [isLoading, setIsLoading] = useState(false);
 
   // const filter = new Filter();
 
@@ -39,6 +46,10 @@ const Account = () => {
 
   const handleSignOut = () => {
     signOut(FIREBASE_AUTH);
+    setUserEmail("");
+    setIsEmailVerified(false);
+    setExpense([]);
+    setFetchedMonthData([]);
   };
 
   /* const updateDisplayName = async () => {

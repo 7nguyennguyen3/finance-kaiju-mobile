@@ -13,6 +13,8 @@ interface ProgressTrackProps {
   goal: number;
   goalProgress: number | string;
   goalType: "deposit" | "budget";
+  iconName?: "star" | "thumbs-up";
+  condition?: boolean;
 }
 
 const ProgressTrack = ({
@@ -22,6 +24,8 @@ const ProgressTrack = ({
   goalProgress,
   goal,
   goalType,
+  condition = false,
+  iconName = "star",
 }: ProgressTrackProps) => {
   const [modalVisible, setModalVisible] = useState(false);
 
@@ -36,6 +40,14 @@ const ProgressTrack = ({
             alignItems: "center",
           }}
         >
+          {condition && (
+            <Ionicons
+              name={iconName}
+              size={20}
+              color={colors.blue500}
+              style={{ marginRight: 5 }}
+            />
+          )}
           <Text style={styles.description}>{goalProgress}</Text>
           <Pressable
             onPress={() => {

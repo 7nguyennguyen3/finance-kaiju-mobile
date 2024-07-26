@@ -24,15 +24,20 @@ import ExpensesContextProvider, {
   ExpensesContext,
 } from "./store/expenses-context";
 import GoalContextProvider, { GoalContext } from "./store/goal-context";
+import globalStore from "./store/store";
 
 const Stack = createNativeStackNavigator();
 const BottomTab = createBottomTabNavigator();
 
+const currentMonth = new Date().getMonth() + 1;
+const currentYear = new Date().getFullYear();
+
 export function App() {
-  const { setExpense, isUsingTestData, setTestDataUsage } =
+  const { setExpense, isUsingTestData, setTestDataUsage, pushExpenses } =
     useContext(ExpensesContext);
-  const { isEmailVerified, setIsEmailVerified } = useContext(GoalContext);
-  const { setUserEmail } = useContext(GoalContext);
+  const { isEmailVerified, setIsEmailVerified, setUserEmail } =
+    useContext(GoalContext);
+  const { fetchedMonthData, addMonthData, setIsGlobalLoading } = globalStore();
   const [isLoading, setIsLoading] = useState(true);
   const [user, setUser] = useState<User | null>(null);
   const [showCustomAlert, setShowCustomAlert] = useState(false);
@@ -64,11 +69,16 @@ export function App() {
       const fetchData = async () => {
         setIsLoading(true);
         try {
-          setUserEmail(user.email);
+          if (user.email) {
+            setUserEmail(user!.email);
+          }
+
           const querySnapshot = await getDocs(
             query(
               collection(FIRESTORE_DB, "records"),
-              where("userEmail", "==", user.email)
+              where("userEmail", "==", user.email),
+              where("month", "==", currentMonth),
+              where("year", "==", currentYear)
             )
           );
           const dataList: Expense[] = [];
@@ -80,6 +90,7 @@ export function App() {
           if (dataList.length > 0) {
             setExpense(dataList);
             setTestDataUsage(false);
+            addMonthData(`${currentMonth}/${new Date().getFullYear()}`);
           } else {
             setShowCustomAlert(true);
           }
@@ -93,6 +104,46 @@ export function App() {
       fetchData();
     }
   }, [isUsingTestData, isEmailVerified]);
+
+  useEffect(() => {
+    const newlyAddedMonthData = fetchedMonthData[fetchedMonthData.length - 1];
+    if (!newlyAddedMonthData) return;
+    const [month, year] = newlyAddedMonthData.split("/");
+
+    if (
+      month === currentMonth.toString() &&
+      year === new Date().getFullYear().toString()
+    ) {
+      return;
+    }
+    const fetchData = async () => {
+      setIsGlobalLoading(true);
+      try {
+        const querySnapshot = await getDocs(
+          query(
+            collection(FIRESTORE_DB, "records"),
+            where("userEmail", "==", user?.email),
+            where("month", "==", parseInt(month)),
+            where("year", "==", parseInt(year))
+          )
+        );
+        if (!querySnapshot.empty) {
+          const expenses = querySnapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          })) as Expense[];
+          pushExpenses(expenses);
+        }
+      } catch (error) {
+        console.log(error);
+      } finally {
+        setIsGlobalLoading(false);
+      }
+    };
+    fetchData();
+
+    console.log(fetchedMonthData);
+  }, [fetchedMonthData]);
 
   if (isLoading) {
     return <LoadingOverlay />;

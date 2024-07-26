@@ -27,7 +27,7 @@ export default StyleSheet.create({
   },
 
   input: {
-    height: 40,
+    height: 42,
     borderColor: colors.primary500,
     borderWidth: 2,
     padding: 10,
